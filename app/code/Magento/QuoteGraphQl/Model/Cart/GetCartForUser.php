@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Magento\QuoteGraphQl\Model\Cart;
 
+use Magento\Customer\Model\Session as CustomerSession;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\GraphQl\Exception\GraphQlAuthorizationException;
 use Magento\Framework\GraphQl\Exception\GraphQlNoSuchEntityException;
@@ -30,15 +31,23 @@ class GetCartForUser
     private $cartRepository;
 
     /**
+     * @var CustomerSession
+     */
+    private $customerSession;
+
+    /**
      * @param MaskedQuoteIdToQuoteIdInterface $maskedQuoteIdToQuoteId
      * @param CartRepositoryInterface $cartRepository
+     * @param CustomerSession $customerSession
      */
     public function __construct(
         MaskedQuoteIdToQuoteIdInterface $maskedQuoteIdToQuoteId,
-        CartRepositoryInterface $cartRepository
+        CartRepositoryInterface $cartRepository,
+        CustomerSession $customerSession
     ) {
         $this->maskedQuoteIdToQuoteId = $maskedQuoteIdToQuoteId;
         $this->cartRepository = $cartRepository;
+        $this->customerSession = $customerSession;
     }
 
     /**
@@ -85,9 +94,10 @@ class GetCartForUser
         }
 
         $cartCustomerId = (int)$cart->getCustomerId();
+        $isCustomerLoggedIn = (bool)$this->customerSession->isLoggedIn();
 
         /* Guest cart, allow operations */
-        if (0 === $cartCustomerId && (null === $customerId || 0 === $customerId)) {
+        if (0 === $cartCustomerId && (!$isCustomerLoggedIn || null === $customerId || 0 === $customerId)) {
             return $cart;
         }
 
